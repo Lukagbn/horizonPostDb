@@ -9,7 +9,7 @@ app.use(express.json());
 
 const userRoute = require("./routes/user.js");
 const postRoute = require("./routes/post.js");
-app.use("/users", userRoute);
+app.use("/auth", userRoute);
 app.use("/posts", postRoute);
 
 mongoose

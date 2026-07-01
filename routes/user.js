@@ -1,8 +1,9 @@
 const express = require("express");
 const User = require("../models/User");
 const router = express.Router();
+const bcrypt = require("bcrypt");
 
-router.get("/", async (req, res) => {
+router.get("/allUsers", async (req, res) => {
   try {
     const users = await User.find();
     res.status(200).json({ data: users });
@@ -11,7 +12,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/register", async (req, res) => {
   try {
     const {
       firstName,
@@ -23,22 +24,38 @@ router.post("/", async (req, res) => {
       password,
       mobile,
     } = req.body;
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      res.status(400).json({ error: "Email already taken" });
+    const userAlreadyExists = await User.findOne({ email });
+    if (userAlreadyExists) {
+      return res
+        .status(400)
+        .json({ message: "User with this email already exists" });
     }
-    const newUser = await User({
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = new User({
       firstName,
       lastName,
       userName,
       age,
       gender,
       email,
-      password,
+      password: hashedPassword,
       mobile,
     });
     await newUser.save();
     res.status(201).json({ message: "User created successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!user || !isMatch) {
+      return res.status(401).json({ error: "Email or password is incorrect" });
+    }
+    res.status(201).json({ message: user });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
