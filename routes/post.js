@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const uploadCloud = require("../middleware/cloudinary.js");
 const Post = require("../models/Post");
 
 router.get("/", async (req, res) => {
@@ -10,13 +11,23 @@ router.get("/", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-router.post("/", async (req, res) => {
+router.post("/", uploadCloud.single("image"), async (req, res) => {
   try {
-    const { title, image, description, category, userId } = req.body;
-    const newPost = await Post({ title, image, description, category, userId });
+    if (!req.file) {
+      return res.status(400).json({ error: "Please upload an image file." });
+    }
+    const { title, description, category, userId } = req.body;
+    const image = req.file.path;
+    const newPost = new Post({ title, image, description, category, userId });
     await newPost.save();
+    return res.status(201).json({
+      success: true,
+      message: "Post created successfully!",
+      data: newPost,
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
+
 module.exports = router;
